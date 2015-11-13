@@ -91,7 +91,7 @@ namespace Microsoft.AspNet.Server.KestrelTests
             var engine = new KestrelEngine(testContext);
             engine.Start(1);
             var address = ServerAddress.FromUrl("http://localhost:54321/");
-            var started = engine.CreateServer(address, App);
+            var started = engine.CreateServer<HttpContext>(address, new DummyApplication(App));
             started.Dispose();
             engine.Dispose();
         }
@@ -103,7 +103,7 @@ namespace Microsoft.AspNet.Server.KestrelTests
             var engine = new KestrelEngine(testContext);
             engine.Start(1);
             var address = ServerAddress.FromUrl("http://localhost:54321/");
-            var started = engine.CreateServer(address, App);
+            var started = engine.CreateServer<HttpContext>(address, new DummyApplication(App));
 
             Console.WriteLine("Started");
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);

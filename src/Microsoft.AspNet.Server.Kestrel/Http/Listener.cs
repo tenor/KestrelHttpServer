@@ -3,7 +3,7 @@
 
 using System;
 using System.Threading.Tasks;
-using Microsoft.AspNet.Http;
+using Microsoft.AspNet.Hosting.Server;
 using Microsoft.AspNet.Server.Kestrel.Networking;
 using Microsoft.Extensions.Logging;
 
@@ -21,10 +21,10 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
 
         protected UvStreamHandle ListenSocket { get; private set; }
 
-        public Task StartAsync(
+        public Task StartAsync<THttpContext>(
             ServerAddress address,
             KestrelThread thread,
-            RequestDelegate application)
+            object application)
         {
             ServerAddress = address;
             Thread = thread;
@@ -37,7 +37,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                 try
                 {
                     var listener = ((Listener)tcs2.Task.AsyncState);
-                    listener.ListenSocket = listener.CreateListenSocket();
+                    listener.ListenSocket = listener.CreateListenSocket<THttpContext>();
                     tcs2.SetResult(0);
                 }
                 catch (Exception ex)
@@ -52,9 +52,9 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         /// <summary>
         /// Creates the socket used to listen for incoming connections
         /// </summary>
-        protected abstract UvStreamHandle CreateListenSocket();
+        protected abstract UvStreamHandle CreateListenSocket<THttpContext>();
 
-        protected static void ConnectionCallback(UvStreamHandle stream, int status, Exception error, object state)
+        protected static void ConnectionCallback<THttpContext>(UvStreamHandle stream, int status, Exception error, object state)
         {
             var listener = (Listener) state;
             if (error != null)
@@ -63,7 +63,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             }
             else
             {
-                listener.OnConnection(stream, status);
+                listener.OnConnection<THttpContext>(stream, status);
             }
         }
 
@@ -72,12 +72,12 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         /// </summary>
         /// <param name="listenSocket">Socket being used to listen on</param>
         /// <param name="status">Connection status</param>
-        protected abstract void OnConnection(UvStreamHandle listenSocket, int status);
+        protected abstract void OnConnection<THttpContext>(UvStreamHandle listenSocket, int status);
 
-        protected virtual void DispatchConnection(UvStreamHandle socket)
+        protected virtual void DispatchConnection<THttpContext>(UvStreamHandle socket)
         {
             var connection = new Connection(this, socket);
-            connection.Start();
+            connection.Start<THttpContext>();
         }
 
         public void Dispose()

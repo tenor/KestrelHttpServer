@@ -31,15 +31,15 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
 
         UvPipeHandle ListenPipe { get; set; }
 
-        public async Task StartAsync(
+        public async Task StartAsync<THttpContext>(
             string pipeName,
             ServerAddress address,
             KestrelThread thread,
-            RequestDelegate application)
+            object application)
         {
             _pipeName = pipeName;
 
-            await StartAsync(address, thread, application).ConfigureAwait(false);
+            await StartAsync<THttpContext>(address, thread, application).ConfigureAwait(false);
 
             await Thread.PostAsync(_this => _this.PostCallback(), 
                                     this).ConfigureAwait(false);
@@ -78,12 +78,12 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             _dispatchPipes.Add(dispatchPipe);
         }
 
-        protected override void DispatchConnection(UvStreamHandle socket)
+        protected override void DispatchConnection<THttpContext>(UvStreamHandle socket)
         {
             var index = _dispatchIndex++ % (_dispatchPipes.Count + 1);
             if (index == _dispatchPipes.Count)
             {
-                base.DispatchConnection(socket);
+                base.DispatchConnection<THttpContext>(socket);
             }
             else
             {

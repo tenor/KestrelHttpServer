@@ -29,11 +29,11 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
 
         UvPipeHandle DispatchPipe { get; set; }
 
-        public Task StartAsync(
+        public Task StartAsync<THttpContext>(
             string pipeName,
             ServerAddress address,
             KestrelThread thread,
-            RequestDelegate application)
+            object application)
         {
             _pipeName = pipeName;
             _buf = thread.Loop.Libuv.buf_init(_ptr, 4);
@@ -45,17 +45,17 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             DispatchPipe = new UvPipeHandle(Log);
 
             var tcs = new TaskCompletionSource<int>(this);
-            Thread.Post(tcs2 => StartCallback(tcs2), tcs);
+            Thread.Post(tcs2 => StartCallback<THttpContext>(tcs2), tcs);
             return tcs.Task;
         }
 
-        private static void StartCallback(TaskCompletionSource<int> tcs)
+        private static void StartCallback<THttpContext>(TaskCompletionSource<int> tcs)
         {
             var listener = (ListenerSecondary)tcs.Task.AsyncState;
-            listener.StartedCallback(tcs);
+            listener.StartedCallback<THttpContext>(tcs);
         }
 
-        private void StartedCallback(TaskCompletionSource<int> tcs)
+        private void StartedCallback<THttpContext>(TaskCompletionSource<int> tcs)
         {
             try
             {
@@ -65,7 +65,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                 connect.Connect(
                     DispatchPipe,
                     _pipeName,
-                    (connect2, status, error, state) => ConnectCallback(connect2, status, error, (TaskCompletionSource<int>)state),
+                    (connect2, status, error, state) => ConnectCallback<THttpContext>(connect2, status, error, (TaskCompletionSource<int>)state),
                     tcs);
             }
             catch (Exception ex)
@@ -75,13 +75,13 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             }
         }
 
-        private static void ConnectCallback(UvConnectRequest connect, int status, Exception error, TaskCompletionSource<int> tcs)
+        private static void ConnectCallback<THttpContext>(UvConnectRequest connect, int status, Exception error, TaskCompletionSource<int> tcs)
         {
             var listener = (ListenerSecondary)tcs.Task.AsyncState;
-            listener.ConnectedCallback(connect, status, error, tcs);
+            listener.ConnectedCallback<THttpContext>(connect, status, error, tcs);
         }
 
-        private void ConnectedCallback(UvConnectRequest connect, int status, Exception error, TaskCompletionSource<int> tcs)
+        private void ConnectedCallback<THttpContext>(UvConnectRequest connect, int status, Exception error, TaskCompletionSource<int> tcs)
         {
             connect.Dispose();
             if (error != null)
@@ -94,7 +94,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             {
                 DispatchPipe.ReadStart(
                     (handle, status2, state) => ((ListenerSecondary)state)._buf,
-                    (handle, status2, state) => ((ListenerSecondary)state).ReadStartCallback(handle, status2),
+                    (handle, status2, state) => ((ListenerSecondary)state).ReadStartCallback<THttpContext>(handle, status2),
                     this);
 
                 tcs.SetResult(0);
@@ -106,7 +106,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             }
         }
 
-        private void ReadStartCallback(UvStreamHandle handle, int status)
+        private void ReadStartCallback<THttpContext>(UvStreamHandle handle, int status)
         {
             if (status < 0)
             {
@@ -140,7 +140,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             }
 
             var connection = new Connection(this, acceptSocket);
-            connection.Start();
+            connection.Start<THttpContext>();
         }
 
         /// <summary>

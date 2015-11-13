@@ -45,7 +45,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             _rawSocketOutput = new SocketOutput(Thread, _socket, _connectionId, Log);
         }
 
-        public void Start()
+        public void Start<THttpContext>()
         {
             Log.ConnectionStart(_connectionId);
 
@@ -66,7 +66,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                 SocketOutput = _rawSocketOutput;
 
                 _frame = CreateFrame();
-                _frame.Start();
+                _frame.Start<THttpContext>();
             }
             else
             {
@@ -94,13 +94,13 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                     }
                     else
                     {
-                        connection.ApplyConnectionFilter();
+                        connection.ApplyConnectionFilter<THttpContext>();
                     }
                 }, this);
             }
         }
 
-        private void ApplyConnectionFilter()
+        private void ApplyConnectionFilter<THttpContext>()
         {
             var filteredStreamAdapter = new FilteredStreamAdapter(_filterContext.Connection, Memory2, Log);
 
@@ -108,7 +108,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             SocketOutput = filteredStreamAdapter.SocketOutput;
 
             _frame = CreateFrame();
-            _frame.Start();
+            _frame.Start<THttpContext>();
         }
 
         private static Libuv.uv_buf_t AllocCallback(UvStreamHandle handle, int suggestedSize, object state)

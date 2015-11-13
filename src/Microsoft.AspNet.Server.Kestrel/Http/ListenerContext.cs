@@ -33,8 +33,6 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
 
         public KestrelThread Thread { get; set; }
 
-        public RequestDelegate Application { get; set; }
-
         public MemoryPool2 Memory2 { get; set; }
     }
 }

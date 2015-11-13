@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using Microsoft.AspNet.Hosting.Server;
 using Microsoft.AspNet.Http;
 using Microsoft.AspNet.Server.Kestrel.Http;
 using Microsoft.AspNet.Server.Kestrel.Networking;
@@ -48,7 +49,7 @@ namespace Microsoft.AspNet.Server.Kestrel
             Threads.Clear();
         }
 
-        public IDisposable CreateServer(ServerAddress address, RequestDelegate application)
+        public IDisposable CreateServer<THttpContext>(ServerAddress address, object application)
         {
             var listeners = new List<IDisposable>();
 
@@ -69,7 +70,7 @@ namespace Microsoft.AspNet.Server.Kestrel
                             (Listener) new PipeListener(this) :
                             new TcpListener(this);
                         listeners.Add(listener);
-                        listener.StartAsync(address, thread, application).Wait();
+                        listener.StartAsync<THttpContext>(address, thread, application).Wait();
                     }
                     else if (first)
                     {
@@ -78,7 +79,7 @@ namespace Microsoft.AspNet.Server.Kestrel
                             : new TcpListenerPrimary(this);
 
                         listeners.Add(listener);
-                        listener.StartAsync(pipeName, address, thread, application).Wait();
+                        listener.StartAsync<THttpContext>(pipeName, address, thread, application).Wait();
                     }
                     else
                     {
@@ -86,7 +87,7 @@ namespace Microsoft.AspNet.Server.Kestrel
                             ? (ListenerSecondary) new PipeListenerSecondary(this)
                             : new TcpListenerSecondary(this);
                         listeners.Add(listener);
-                        listener.StartAsync(pipeName, address, thread, application).Wait();
+                        listener.StartAsync<THttpContext>(pipeName, address, thread, application).Wait();
                     }
 
                     first = false;

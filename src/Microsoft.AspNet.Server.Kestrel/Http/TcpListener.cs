@@ -19,13 +19,13 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         /// <summary>
         /// Creates the socket used to listen for incoming connections
         /// </summary>
-        protected override UvStreamHandle CreateListenSocket()
+        protected override UvStreamHandle CreateListenSocket<THttpContext>()
         {
             var socket = new UvTcpHandle(Log);
             socket.Init(Thread.Loop, Thread.QueueCloseHandle);
             socket.NoDelay(NoDelay);
             socket.Bind(ServerAddress);
-            socket.Listen(Constants.ListenBacklog, (stream, status, error, state) => ConnectionCallback(stream, status, error, state), this);
+            socket.Listen(Constants.ListenBacklog, (stream, status, error, state) => ConnectionCallback<THttpContext>(stream, status, error, state), this);
             return socket;
         }
 
@@ -34,7 +34,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         /// </summary>
         /// <param name="listenSocket">Socket being used to listen on</param>
         /// <param name="status">Connection status</param>
-        protected override void OnConnection(UvStreamHandle listenSocket, int status)
+        protected override void OnConnection<THttpContext>(UvStreamHandle listenSocket, int status)
         {
             var acceptSocket = new UvTcpHandle(Log);
             acceptSocket.Init(Thread.Loop, Thread.QueueCloseHandle);
@@ -50,7 +50,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                 return;
             }
 
-            DispatchConnection(acceptSocket);
+            DispatchConnection<THttpContext>(acceptSocket);
         }
     }
 }

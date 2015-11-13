@@ -34,9 +34,9 @@ namespace Microsoft.AspNet.Server.KestrelTests
         {
             _engine = new KestrelEngine(context);
             _engine.Start(1);
-            _server = _engine.CreateServer(
+            _server = _engine.CreateServer<HttpContext>(
                 ServerAddress.FromUrl(serverAddress),
-                app);
+                new DummyApplication(app));
         }
 
         public void Dispose()

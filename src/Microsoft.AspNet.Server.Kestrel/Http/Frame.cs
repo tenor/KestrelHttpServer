@@ -9,6 +9,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNet.Hosting.Server;
 using Microsoft.AspNet.Http;
 using Microsoft.AspNet.Http.Features;
 using Microsoft.AspNet.Server.Kestrel.Infrastructure;
@@ -143,12 +144,12 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         /// <summary>
         /// Called once by Connection class to begin the RequestProcessingAsync loop.
         /// </summary>
-        public void Start()
+        public void Start<THttpContext>()
         {
             if (!_requestProcessingStarted)
             {
                 _requestProcessingStarted = true;
-                _requestProcessingTask = Task.Run(RequestProcessingAsync);
+                _requestProcessingTask = Task.Run(RequestProcessingAsync<THttpContext>);
             }
         }
 
@@ -173,7 +174,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         /// The resulting Task from this loop is preserved in a field which is used when the server needs
         /// to drain and close all currently active connections.
         /// </summary>
-        public async Task RequestProcessingAsync()
+        public async Task RequestProcessingAsync<THttpContext>()
         {
             try
             {
@@ -206,13 +207,14 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                         ResponseBody = new FrameResponseStream(this);
                         DuplexStream = new FrameDuplexStream(RequestBody, ResponseBody);
 
-                        var httpContext = HttpContextFactory.Create(this);
+                        var context = ((IHttpApplication<THttpContext>)Application).CreateContext(this);
                         try
                         {
-                            await Application.Invoke(httpContext).ConfigureAwait(false);
+                            await ((IHttpApplication<THttpContext>)Application).ProcessRequestAsync(context).ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
+                            ((IHttpApplication<THttpContext>)Application).DisposeContext(context, ex);
                             ReportApplicationError(ex);
                         }
                         finally
@@ -228,8 +230,6 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
 
                             await FireOnCompleted();
 
-                            HttpContextFactory.Dispose(httpContext);
-
                             await ProduceEnd();
 
                             while (await RequestBody.ReadAsync(_nullBuffer, 0, _nullBuffer.Length) != 0)
@@ -237,6 +237,8 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                                 // Finish reading the request body in case the app did not.
                             }
                         }
+
+                        ((IHttpApplication<THttpContext>)Application).DisposeContext(context);
 
                         terminated = !_keepAlive;
                     }
