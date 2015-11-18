@@ -49,7 +49,7 @@ namespace Microsoft.AspNet.Server.Kestrel
 
         public IFeatureCollection Features { get; }
 
-        public void Start(RequestDelegate requestDelegate)
+        public void Start<THttpContext>(IHttpApplication<THttpContext> application)
         {
             if (_disposables != null)
             {
@@ -64,9 +64,9 @@ namespace Microsoft.AspNet.Server.Kestrel
                 var dateHeaderValueManager = new DateHeaderValueManager();
                 var engine = new KestrelEngine(new ServiceContext
                 {
+                    FrameFactory = (context, remoteEP, localEP) => { return new Frame<THttpContext>(application, context, remoteEP, localEP); },
                     AppLifetime = _applicationLifetime,
                     Log = new KestrelTrace(_logger),
-                    HttpContextFactory = _httpContextFactory,
                     DateHeaderValueManager = dateHeaderValueManager,
                     ConnectionFilter = information.ConnectionFilter,
                     NoDelay = information.NoDelay
@@ -119,8 +119,7 @@ namespace Microsoft.AspNet.Server.Kestrel
                     {
                         atLeastOneListener = true;
                         _disposables.Push(engine.CreateServer(
-                            parsedAddress,
-                            requestDelegate));
+                            parsedAddress));
                     }
                 }
 

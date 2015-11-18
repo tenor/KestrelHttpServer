@@ -12,7 +12,6 @@ namespace Microsoft.AspNet.Server.KestrelTests
         {
             AppLifetime = new LifetimeNotImplemented();
             Log = new TestKestrelTrace();
-            HttpContextFactory = new HttpContextFactory(new HttpContextAccessor());
             DateHeaderValueManager = new TestDateHeaderValueManager();
         }
     }

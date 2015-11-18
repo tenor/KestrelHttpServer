@@ -9,6 +9,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNet.Hosting.Server;
 using Microsoft.AspNet.Http;
 using Microsoft.AspNet.Http.Features;
 using Microsoft.AspNet.Server.Kestrel.Filter;
@@ -31,7 +32,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
 
         private readonly object _onStartingSync = new Object();
         private readonly object _onCompletedSync = new Object();
-        private readonly FrameRequestHeaders _requestHeaders = new FrameRequestHeaders();
+        protected readonly FrameRequestHeaders _requestHeaders = new FrameRequestHeaders();
         private readonly FrameResponseHeaders _responseHeaders = new FrameResponseHeaders();
 
         private List<KeyValuePair<Func<object, Task>, object>> _onStarting;
@@ -40,7 +41,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
 
         private bool _requestProcessingStarted;
         private Task _requestProcessingTask;
-        private volatile bool _requestProcessingStopping; // volatile, see: https://msdn.microsoft.com/en-us/library/x13ttww7.aspx
+        protected volatile bool _requestProcessingStopping; // volatile, see: https://msdn.microsoft.com/en-us/library/x13ttww7.aspx
         private volatile bool _requestAborted;
         private CancellationTokenSource _disconnectCts = new CancellationTokenSource();
         private CancellationTokenSource _requestAbortCts;
@@ -48,10 +49,10 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         private FrameRequestStream _requestBody;
         private FrameResponseStream _responseBody;
 
-        private bool _responseStarted;
-        private bool _keepAlive;
+        protected bool _responseStarted;
+        protected bool _keepAlive;
         private bool _autoChunk;
-        private Exception _applicationException;
+        protected Exception _applicationException;
 
         private readonly IPEndPoint _localEndPoint;
         private readonly IPEndPoint _remoteEndPoint;
@@ -212,7 +213,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         /// The resulting Task from this loop is preserved in a field which is used when the server needs
         /// to drain and close all currently active connections.
         /// </summary>
-        public async Task RequestProcessingAsync()
+        public virtual Task RequestProcessingAsync()
         {
             try
             {
@@ -350,7 +351,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             }
         }
 
-        private async Task FireOnStarting()
+        protected async Task FireOnStarting()
         {
             List<KeyValuePair<Func<object, Task>, object>> onStarting = null;
             lock (_onStartingSync)
@@ -374,7 +375,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             }
         }
 
-        private async Task FireOnCompleted()
+        protected async Task FireOnCompleted()
         {
             List<KeyValuePair<Func<object, Task>, object>> onCompleted = null;
             lock (_onCompletedSync)
@@ -544,7 +545,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             }
         }
 
-        private async Task ProduceEnd()
+        protected async Task ProduceEnd()
         {
             if (_applicationException != null)
             {
@@ -674,7 +675,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             return new Tuple<ArraySegment<byte>, IDisposable>(writer.Buffer, writer);
         }
 
-        private bool TakeStartLine(SocketInput input)
+        protected bool TakeStartLine(SocketInput input)
         {
             var scan = input.ConsumingStart();
             var consumed = scan;
@@ -875,10 +876,127 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                    statusCode != 304;
         }
 
-        private void ReportApplicationError(Exception ex)
+        protected void ReportApplicationError(Exception ex)
         {
             _applicationException = ex;
             Log.ApplicationError(ex);
+        }
+    }
+
+    public class Frame<THttpContext> : Frame
+    {
+        private readonly IHttpApplication<THttpContext> _application;
+
+        public Frame(IHttpApplication<THttpContext> application,
+                     ConnectionContext context)
+            : this(application, context, remoteEndPoint: null, localEndPoint: null)
+        {
+        }
+
+        public Frame(IHttpApplication<THttpContext> application,
+                     ConnectionContext context,
+                     IPEndPoint remoteEndPoint,
+                     IPEndPoint localEndPoint)
+            : base(context, remoteEndPoint, localEndPoint)
+        {
+            _application = application;
+        }
+
+        public override async Task RequestProcessingAsync()
+        {
+            try
+            {
+                var terminated = false;
+                while (!terminated && !_requestProcessingStopping)
+                {
+                    while (!terminated && !_requestProcessingStopping && !TakeStartLine(SocketInput))
+                    {
+                        terminated = SocketInput.RemoteIntakeFin;
+                        if (!terminated)
+                        {
+                            await SocketInput;
+                        }
+                    }
+
+                    while (!terminated && !_requestProcessingStopping && !TakeMessageHeaders(SocketInput, _requestHeaders))
+                    {
+                        terminated = SocketInput.RemoteIntakeFin;
+                        if (!terminated)
+                        {
+                            await SocketInput;
+                        }
+                    }
+
+                    if (!terminated && !_requestProcessingStopping)
+                    {
+                        MessageBody = MessageBody.For(HttpVersion, _requestHeaders, this);
+                        _keepAlive = MessageBody.RequestKeepAlive;
+                        RequestBody = new FrameRequestStream(MessageBody);
+                        ResponseBody = new FrameResponseStream(this);
+                        DuplexStream = new FrameDuplexStream(RequestBody, ResponseBody);
+                        
+                        var context = _application.CreateContext(this);
+                        try
+                        {
+                            await _application.ProcessRequestAsync(context).ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            ReportApplicationError(ex);
+                            _application.DisposeContext(context, ex);
+                        }
+                        finally
+                        {
+                            // Trigger OnStarting if it hasn't been called yet and the app hasn't
+                            // already failed. If an OnStarting callback throws we can go through
+                            // our normal error handling in ProduceEnd.
+                            // https://github.com/aspnet/KestrelHttpServer/issues/43
+                            if (!_responseStarted && _applicationException == null)
+                            {
+                                await FireOnStarting();
+                            }
+
+                            await FireOnCompleted();
+
+                            if (_applicationException == null)
+                            {
+                                _application.DisposeContext(context, null);
+                            }
+
+                            await ProduceEnd();
+
+                            // Finish reading the request body in case the app did not.
+                            await MessageBody.Consume();
+                        }
+
+                        terminated = !_keepAlive;
+                    }
+
+                    Reset();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.LogWarning("Connection processing ended abnormally", ex);
+            }
+            finally
+            {
+                try
+                {
+                    // Inform client no more data will ever arrive
+                    ConnectionControl.End(ProduceEndType.SocketShutdownSend);
+
+                    // Wait for client to either disconnect or send unexpected data
+                    await SocketInput;
+
+                    // Dispose socket
+                    ConnectionControl.End(ProduceEndType.SocketDisconnect);
+                }
+                catch (Exception ex)
+                {
+                    Log.LogWarning("Connection shutdown abnormally", ex);
+                }
+            }
         }
     }
 }
