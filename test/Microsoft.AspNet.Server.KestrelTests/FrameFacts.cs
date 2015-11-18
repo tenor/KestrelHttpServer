@@ -13,7 +13,7 @@ namespace Microsoft.AspNet.Server.KestrelTests
         public void ResetResetsScheme()
         {
             // Arrange
-            var frame = new Frame(new ConnectionContext() { DateHeaderValueManager = new DateHeaderValueManager() });
+            var frame = new Frame<object>(application: null, context: new ConnectionContext() { DateHeaderValueManager = new DateHeaderValueManager() });
             frame.Scheme = "https";
 
             // Act
