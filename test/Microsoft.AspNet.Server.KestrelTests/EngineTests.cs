@@ -92,12 +92,9 @@ namespace Microsoft.AspNet.Server.KestrelTests
         [ConditionalTheory]
         [MemberData(nameof(ConnectionFilterData))]
         [FrameworkSkipCondition(RuntimeFrameworks.Mono, SkipReason = "Test hangs after execution on Mono.")]
-        public void ListenerCanCreateAndDispose(ServiceContext testContext)
+        public void ListenerCanCreateAndDispose(TestServiceContext testContext)
         {
-            testContext.FrameFactory = (connectionContext, remoteEP, localEP) =>
-            {
-                return new Frame<HttpContext>(new DummyApplication(App), connectionContext, remoteEP, localEP);
-            };
+            testContext.App = App;
             var engine = new KestrelEngine(testContext);
             engine.Start(1);
             var address = ServerAddress.FromUrl("http://localhost:54321/");
@@ -109,12 +106,9 @@ namespace Microsoft.AspNet.Server.KestrelTests
         [ConditionalTheory]
         [MemberData(nameof(ConnectionFilterData))]
         [FrameworkSkipCondition(RuntimeFrameworks.Mono, SkipReason = "Test hangs after execution on Mono.")]
-        public void ConnectionCanReadAndWrite(ServiceContext testContext)
+        public void ConnectionCanReadAndWrite(TestServiceContext testContext)
         {
-            testContext.FrameFactory = (connectionContext, remoteEP, localEP) =>
-            {
-                return new Frame<HttpContext>(new DummyApplication(App), connectionContext, remoteEP, localEP);
-            };
+            testContext.App = App;
             var engine = new KestrelEngine(testContext);
             engine.Start(1);
             var address = ServerAddress.FromUrl("http://localhost:54321/");
