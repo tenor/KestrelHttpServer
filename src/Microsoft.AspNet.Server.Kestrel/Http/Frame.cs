@@ -13,6 +13,7 @@ using Microsoft.AspNet.Http;
 using Microsoft.AspNet.Http.Features;
 using Microsoft.AspNet.Server.Kestrel.Filter;
 using Microsoft.AspNet.Server.Kestrel.Infrastructure;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 
 // ReSharper disable AccessToModifiedClosure
@@ -51,12 +52,12 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         private bool _requestProcessingStarted;
         private Task _requestProcessingTask;
         protected volatile bool _requestProcessingStopping; // volatile, see: https://msdn.microsoft.com/en-us/library/x13ttww7.aspx
-        private volatile bool _requestAborted;
-        private CancellationTokenSource _abortedCts;
-        private CancellationToken? _manuallySetRequestAbortToken;
+        protected volatile bool _requestAborted;
+        protected CancellationTokenSource _abortedCts;
+        protected CancellationToken? _manuallySetRequestAbortToken;
 
-        private FrameRequestStream _requestBody;
-        private FrameResponseStream _responseBody;
+        internal FrameRequestStream _requestBody;
+        internal FrameResponseStream _responseBody;
 
         protected bool _responseStarted;
         protected bool _keepAlive;
