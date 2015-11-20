@@ -754,7 +754,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
 
                 if (!string.IsNullOrEmpty(_pathBase) &&
                     (requestUrlPath.Equals(_pathBase, StringComparison.OrdinalIgnoreCase) ||
-                     requestUrlPath.StartsWith(_pathBase + "/", StringComparison.OrdinalIgnoreCase)))
+                     requestUrlPath.StartsWith(_pathBaseWithSlash, StringComparison.OrdinalIgnoreCase)))
                 {
                     PathBase = requestUrlPath.Substring(0, _pathBase.Length);
                     Path = requestUrlPath.Substring(_pathBase.Length);
