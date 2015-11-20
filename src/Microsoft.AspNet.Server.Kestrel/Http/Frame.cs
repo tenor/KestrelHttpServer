@@ -73,7 +73,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             _remoteEndPoint = remoteEndPoint;
             _localEndPoint = localEndPoint;
             _prepareRequest = prepareRequest;
-            _pathBase = context.ServerAddress.Path;
+            _pathBase = context?.ServerAddress?.Path;
 
             FrameControl = this;
             Reset();
