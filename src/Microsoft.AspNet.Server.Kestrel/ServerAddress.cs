@@ -137,7 +137,15 @@ namespace Microsoft.AspNet.Server.Kestrel
                 serverAddress.Host = url.Substring(schemeDelimiterEnd, pathDelimiterStart - schemeDelimiterEnd);
             }
 
-            serverAddress.Path = url.Substring(pathDelimiterEnd);
+            // Path should not end with a / since it will be used as PathBase later
+            if (url[url.Length - 1] == '/')
+            {
+                serverAddress.Path = url.Substring(pathDelimiterEnd, url.Length - pathDelimiterEnd - 1);
+            }
+            else
+            {
+                serverAddress.Path = url.Substring(pathDelimiterEnd);
+            }
 
             return serverAddress;
         }

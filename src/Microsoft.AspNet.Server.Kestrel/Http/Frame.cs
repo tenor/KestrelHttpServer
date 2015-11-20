@@ -57,6 +57,8 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         private readonly IPEndPoint _remoteEndPoint;
         private readonly Action<IFeatureCollection> _prepareRequest;
 
+        private readonly string _pathBase;
+
         public Frame(ConnectionContext context)
             : this(context, remoteEndPoint: null, localEndPoint: null, prepareRequest: null)
         {
@@ -71,6 +73,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             _remoteEndPoint = remoteEndPoint;
             _localEndPoint = localEndPoint;
             _prepareRequest = prepareRequest;
+            _pathBase = context.ServerAddress.Path;
 
             FrameControl = this;
             Reset();
@@ -79,6 +82,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         public string Scheme { get; set; }
         public string Method { get; set; }
         public string RequestUri { get; set; }
+        public string PathBase { get; set; }
         public string Path { get; set; }
         public string QueryString { get; set; }
         public string HttpVersion { get; set; }
@@ -116,6 +120,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             Scheme = null;
             Method = null;
             RequestUri = null;
+            PathBase = null;
             Path = null;
             QueryString = null;
             HttpVersion = null;
@@ -744,7 +749,17 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                 RequestUri = requestUrlPath;
                 QueryString = queryString;
                 HttpVersion = httpVersion;
-                Path = RequestUri;
+
+                if (!string.IsNullOrEmpty(_pathBase) && requestUrlPath.StartsWith(_pathBase))
+                {
+                    PathBase = _pathBase;
+                    Path = requestUrlPath.Substring(_pathBase.Length);
+                }
+                else
+                {
+                    Path = requestUrlPath;
+                }
+
                 return true;
             }
             finally

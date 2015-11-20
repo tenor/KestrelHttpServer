@@ -39,7 +39,7 @@ namespace SampleApp
                 Console.WriteLine("Could not find certificate at '{0}'. HTTPS is not enabled.", testCertPath);
             }
 
-            app.UseKestrelConnectionLogging();
+            //app.UseKestrelConnectionLogging();
 
             app.Run(async context =>
             {
@@ -48,6 +48,10 @@ namespace SampleApp
                     context.Request.PathBase,
                     context.Request.Path,
                     context.Request.QueryString);
+                Console.WriteLine($"Method: {context.Request.Method}");
+                Console.WriteLine($"PathBase: {context.Request.PathBase}");
+                Console.WriteLine($"Path: {context.Request.Path}");
+                Console.WriteLine($"QueryString: {context.Request.QueryString}");
 
                 var connectionFeature = context.Connection;
                 Console.WriteLine($"Peer: {connectionFeature.RemoteIpAddress?.ToString()} {connectionFeature.RemotePort}");
