@@ -39,7 +39,7 @@ namespace SampleApp
                 Console.WriteLine("Could not find certificate at '{0}'. HTTPS is not enabled.", testCertPath);
             }
 
-            //app.UseKestrelConnectionLogging();
+            app.UseKestrelConnectionLogging();
 
             app.Run(async context =>
             {

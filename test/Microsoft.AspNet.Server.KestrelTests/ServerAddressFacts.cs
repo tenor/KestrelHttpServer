@@ -34,14 +34,14 @@ namespace Microsoft.AspNet.Server.KestrelTests
         [InlineData("http://unix:/tmp/kestrel-test.sock:", "http", "unix:/tmp/kestrel-test.sock", 0, "")]
         [InlineData("http://unix:/tmp/kestrel-test.sock:/", "http", "unix:/tmp/kestrel-test.sock", 0, "")]
         [InlineData("http://unix:/tmp/kestrel-test.sock:5000/doesn't/matter", "http", "unix:/tmp/kestrel-test.sock", 0, "5000/doesn't/matter")]
-        public void UrlsAreParsedCorrectly(string url, string scheme, string host, int port, string pathBase)
+        public void UrlsAreParsedCorrectly(string url, string scheme, string host, int port, string path)
         {
             var serverAddress = ServerAddress.FromUrl(url);
 
             Assert.Equal(scheme, serverAddress.Scheme);
             Assert.Equal(host, serverAddress.Host);
             Assert.Equal(port, serverAddress.Port);
-            Assert.Equal(pathBase, serverAddress.Path);
+            Assert.Equal(path, serverAddress.Path);
         }
     }
 }
