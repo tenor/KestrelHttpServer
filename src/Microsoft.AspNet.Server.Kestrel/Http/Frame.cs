@@ -58,6 +58,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         private readonly Action<IFeatureCollection> _prepareRequest;
 
         private readonly string _pathBase;
+        private readonly string _pathBaseWithSlash;
 
         public Frame(ConnectionContext context)
             : this(context, remoteEndPoint: null, localEndPoint: null, prepareRequest: null)
@@ -73,7 +74,8 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             _remoteEndPoint = remoteEndPoint;
             _localEndPoint = localEndPoint;
             _prepareRequest = prepareRequest;
-            _pathBase = context?.ServerAddress?.Path;
+            _pathBase = context?.ServerAddress?.PathBase;
+            _pathBaseWithSlash = context?.ServerAddress?.PathBaseWithSlash;
 
             FrameControl = this;
             Reset();
@@ -750,9 +752,11 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                 QueryString = queryString;
                 HttpVersion = httpVersion;
 
-                if (!string.IsNullOrEmpty(_pathBase) && requestUrlPath.StartsWith(_pathBase))
+                if (!string.IsNullOrEmpty(_pathBase) &&
+                    (requestUrlPath.Equals(_pathBase, StringComparison.OrdinalIgnoreCase) ||
+                     requestUrlPath.StartsWith(_pathBase + "/", StringComparison.OrdinalIgnoreCase)))
                 {
-                    PathBase = _pathBase;
+                    PathBase = requestUrlPath.Substring(0, _pathBase.Length);
                     Path = requestUrlPath.Substring(_pathBase.Length);
                 }
                 else

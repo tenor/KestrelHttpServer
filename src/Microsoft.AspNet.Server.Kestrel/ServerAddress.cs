@@ -11,7 +11,8 @@ namespace Microsoft.AspNet.Server.Kestrel
     public class ServerAddress
     {
         public string Host { get; private set; }
-        public string Path { get; private set; }
+        public string PathBase { get; private set; }
+        public string PathBaseWithSlash => PathBase + "/";
         public int Port { get; private set; }
         public string Scheme { get; private set; }
 
@@ -35,7 +36,7 @@ namespace Microsoft.AspNet.Server.Kestrel
 
         public override string ToString()
         {
-            return Scheme.ToLowerInvariant() + "://" + Host.ToLowerInvariant() + ":" + Port.ToString(CultureInfo.InvariantCulture) + Path.ToLowerInvariant();
+            return Scheme.ToLowerInvariant() + "://" + Host.ToLowerInvariant() + ":" + Port.ToString(CultureInfo.InvariantCulture) + PathBase.ToLowerInvariant();
         }
 
         public override int GetHashCode()
@@ -53,7 +54,7 @@ namespace Microsoft.AspNet.Server.Kestrel
             return string.Equals(Scheme, other.Scheme, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(Host, other.Host, StringComparison.OrdinalIgnoreCase)
                 && Port == other.Port
-                && string.Equals(Path, other.Path, StringComparison.OrdinalIgnoreCase);
+                && string.Equals(PathBase, other.PathBase, StringComparison.OrdinalIgnoreCase);
         }
 
         public static ServerAddress FromUrl(string url)
@@ -71,7 +72,7 @@ namespace Microsoft.AspNet.Server.Kestrel
                         Scheme = "http",
                         Host = "+",
                         Port = port,
-                        Path = "/"
+                        PathBase = "/"
                     };
                 }
                 return null;
@@ -140,11 +141,11 @@ namespace Microsoft.AspNet.Server.Kestrel
             // Path should not end with a / since it will be used as PathBase later
             if (url[url.Length - 1] == '/')
             {
-                serverAddress.Path = url.Substring(pathDelimiterEnd, url.Length - pathDelimiterEnd - 1);
+                serverAddress.PathBase = url.Substring(pathDelimiterEnd, url.Length - pathDelimiterEnd - 1);
             }
             else
             {
-                serverAddress.Path = url.Substring(pathDelimiterEnd);
+                serverAddress.PathBase = url.Substring(pathDelimiterEnd);
             }
 
             return serverAddress;
