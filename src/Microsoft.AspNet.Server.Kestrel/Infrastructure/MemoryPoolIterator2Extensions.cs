@@ -6,7 +6,7 @@ using System.Text;
 
 namespace Microsoft.AspNet.Server.Kestrel.Infrastructure
 {
-    public static class MemoryPoolIterator2Extenstions
+    public static class MemoryPoolIterator2Extensions
     {
         private const int _maxStackAllocBytes = 16384;
 
@@ -202,6 +202,32 @@ namespace Microsoft.AspNet.Server.Kestrel.Infrastructure
             var array = new byte[length];
             start.CopyTo(array, 0, length, out length);
             return new ArraySegment<byte>(array, 0, length);
+        }
+
+        public static bool StartsWithIgnoreCase(this MemoryPoolIterator2 start, string prefix, out MemoryPoolIterator2 end, out bool caseMatches)
+        {
+            end = start;
+            caseMatches = true;
+
+            var i = 0;
+            for (i = 0; i < prefix.Length; i++)
+            {
+                var c = end.Take();
+
+                if (c != prefix[i])
+                {
+                    if (char.ToLowerInvariant((char)c) == char.ToLowerInvariant(prefix[i]))
+                    {
+                        caseMatches = false;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
     }
 }

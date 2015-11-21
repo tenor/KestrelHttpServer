@@ -11,7 +11,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Http;
 using Microsoft.AspNet.Http.Features;
-using Microsoft.AspNet.Server.Kestrel.Filter;
 using Microsoft.AspNet.Server.Kestrel.Infrastructure;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
@@ -58,7 +57,6 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
         private readonly Action<IFeatureCollection> _prepareRequest;
 
         private readonly string _pathBase;
-        private readonly string _pathBaseWithSlash;
 
         public Frame(ConnectionContext context)
             : this(context, remoteEndPoint: null, localEndPoint: null, prepareRequest: null)
@@ -75,7 +73,6 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             _localEndPoint = localEndPoint;
             _prepareRequest = prepareRequest;
             _pathBase = context?.ServerAddress?.PathBase;
-            _pathBaseWithSlash = context?.ServerAddress?.PathBaseWithSlash;
 
             FrameControl = this;
             Reset();
@@ -752,46 +749,26 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                 QueryString = queryString;
                 HttpVersion = httpVersion;
 
-                var pathBaseEnd = pathBegin;
+                MemoryPoolIterator2 pathBaseEnd;
+                bool caseMatches;
 
-                if (!string.IsNullOrEmpty(_pathBase) && requestUrlPath.Length >= _pathBase.Length)
+                if (!string.IsNullOrEmpty(_pathBase) &&
+                    requestUrlPath.Length >= _pathBase.Length &&
+                    pathBegin.StartsWithIgnoreCase(_pathBase, out pathBaseEnd, out caseMatches) &&
+                    (requestUrlPath.Length == _pathBase.Length || requestUrlPath[_pathBase.Length] == '/'))
                 {
-                    int i = 0;
-                    var caseMatches = true;
-
-                    for (i = 0; i < _pathBase.Length; i++)
+                    if (needDecode)
                     {
-                        if (requestUrlPath[i] == _pathBase[i])
-                        {
-                            pathBaseEnd.Take();
-                        }
-                        else if (char.ToLowerInvariant(requestUrlPath[i]) == char.ToLowerInvariant(_pathBase[i]))
-                        {
-                            pathBaseEnd.Take();
-                            caseMatches = false;
-                        }
-                        else
-                        {
-                            break;
-                        }
+                        PathBase = caseMatches ? _pathBase : pathBegin.GetUtf8String(pathBaseEnd);
+                        Path = pathBaseEnd.GetUtf8String(pathEnd);
                     }
-
-                    if (i == _pathBase.Length && (requestUrlPath.Length == _pathBase.Length || requestUrlPath[i] == '/'))
+                    else
                     {
-                        if (needDecode)
-                        {
-                            PathBase = caseMatches ? _pathBase : pathBegin.GetUtf8String(pathBaseEnd);
-                            Path = pathBaseEnd.GetUtf8String(pathEnd);
-                        }
-                        else
-                        {
-                            PathBase = caseMatches ? _pathBase : pathBegin.GetAsciiString(pathBaseEnd);
-                            Path = pathBaseEnd.GetAsciiString(pathEnd);
-                        }
+                        PathBase = caseMatches ? _pathBase : pathBegin.GetAsciiString(pathBaseEnd);
+                        Path = pathBaseEnd.GetAsciiString(pathEnd);
                     }
                 }
-
-                if (Path == null)
+                else
                 {
                     Path = requestUrlPath;
                 }

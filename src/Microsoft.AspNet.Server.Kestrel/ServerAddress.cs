@@ -12,7 +12,6 @@ namespace Microsoft.AspNet.Server.Kestrel
     {
         public string Host { get; private set; }
         public string PathBase { get; private set; }
-        public string PathBaseWithSlash => PathBase + "/";
         public int Port { get; private set; }
         public string Scheme { get; private set; }
 
