@@ -752,17 +752,48 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                 QueryString = queryString;
                 HttpVersion = httpVersion;
 
-                if (!string.IsNullOrEmpty(_pathBase) &&
-                    (requestUrlPath.Equals(_pathBase, StringComparison.OrdinalIgnoreCase) ||
-                     requestUrlPath.StartsWith(_pathBaseWithSlash, StringComparison.OrdinalIgnoreCase)))
+                var pathBaseEnd = pathBegin;
+                bool pathBaseSet = false;
+
+                if (!string.IsNullOrEmpty(_pathBase))
                 {
-                    PathBase = requestUrlPath.Substring(0, _pathBase.Length);
-                    Path = requestUrlPath.Substring(_pathBase.Length);
+                    int i = 0;
+                    while (i < _pathBase.Length && (char.ToUpperInvariant(((char)pathBaseEnd.Take())) == char.ToUpperInvariant(_pathBase[i++])));
+
+                    var pathBaseLast = pathBaseEnd;
+                    if (i == _pathBase.Length && (pathBaseEnd.Index == pathEnd.Index || pathBaseEnd.Take() == '/'))
+                    {
+                        if (needDecode)
+                        {
+                            PathBase = pathBegin.GetUtf8String(pathBaseLast);
+                            Path = pathBaseLast.GetUtf8String(pathEnd);
+                        }
+                        else
+                        {
+                            PathBase = pathBegin.GetAsciiString(pathBaseLast);
+                            Path = pathBaseLast.GetAsciiString(pathEnd);
+                        }
+
+                        pathBaseSet = true;
+                    }
                 }
-                else
+
+                if (!pathBaseSet)
                 {
                     Path = requestUrlPath;
                 }
+
+                //if (!string.IsNullOrEmpty(_pathBase) &&
+                //    (requestUrlPath.Equals(_pathBase, StringComparison.OrdinalIgnoreCase) ||
+                //     requestUrlPath.StartsWith(_pathBaseWithSlash, StringComparison.OrdinalIgnoreCase)))
+                //{
+                //    PathBase = requestUrlPath.Substring(0, _pathBase.Length);
+                //    Path = requestUrlPath.Substring(_pathBase.Length);
+                //}
+                //else
+                //{
+                //    Path = requestUrlPath;
+                //}
 
                 return true;
             }

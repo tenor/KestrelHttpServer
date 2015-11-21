@@ -21,8 +21,10 @@ namespace Microsoft.AspNet.Server.Kestrel.FunctionalTests
         [InlineData("http://localhost:8791/base", "http://localhost:8791/base", "/base", "")]
         [InlineData("http://localhost:8791/base", "http://localhost:8791/base/", "/base", "/")]
         [InlineData("http://localhost:8791/base", "http://localhost:8791/base/something", "/base", "/something")]
+        [InlineData("http://localhost:8791/base", "http://localhost:8791/base/something/", "/base", "/something/")]
         [InlineData("http://localhost:8791/base/more", "http://localhost:8791/base/more", "/base/more", "")]
         [InlineData("http://localhost:8791/base/more", "http://localhost:8791/base/more/something", "/base/more", "/something")]
+        [InlineData("http://localhost:8791/base/more", "http://localhost:8791/base/more/something/", "/base/more", "/something/")]
         [FrameworkSkipCondition(RuntimeFrameworks.Mono, SkipReason = "Test hangs after execution on Mono.")]
         public Task RequestPathBaseIsServerPathBase(string registerAddress, string requestAddress, string expectedPathBase, string expectedPath)
         {
@@ -36,6 +38,8 @@ namespace Microsoft.AspNet.Server.Kestrel.FunctionalTests
         [InlineData("http://localhost:8791/base", "http://localhost:8791/", "", "/")]
         [InlineData("http://localhost:8791/base", "http://localhost:8791/something", "", "/something")]
         [InlineData("http://localhost:8791/base", "http://localhost:8791/baseandsomething", "", "/baseandsomething")]
+        [InlineData("http://localhost:8791/base", "http://localhost:8791/ba", "", "/ba")]
+        [InlineData("http://localhost:8791/base", "http://localhost:8791/ba/se", "", "/ba/se")]
         [FrameworkSkipCondition(RuntimeFrameworks.Mono, SkipReason = "Test hangs after execution on Mono.")]
         public Task DefaultPathBaseIsEmpty(string registerAddress, string requestAddress, string expectedPathBase, string expectedPath)
         {
