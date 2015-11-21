@@ -753,47 +753,48 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                 HttpVersion = httpVersion;
 
                 var pathBaseEnd = pathBegin;
-                bool pathBaseSet = false;
 
-                if (!string.IsNullOrEmpty(_pathBase))
+                if (!string.IsNullOrEmpty(_pathBase) && requestUrlPath.Length >= _pathBase.Length)
                 {
                     int i = 0;
-                    while (i < _pathBase.Length && (char.ToUpperInvariant(((char)pathBaseEnd.Take())) == char.ToUpperInvariant(_pathBase[i++])));
+                    var caseMatches = true;
 
-                    var pathBaseLast = pathBaseEnd;
-                    if (i == _pathBase.Length && (pathBaseEnd.Index == pathEnd.Index || pathBaseEnd.Take() == '/'))
+                    for (i = 0; i < _pathBase.Length; i++)
                     {
-                        if (needDecode)
+                        if (requestUrlPath[i] == _pathBase[i])
                         {
-                            PathBase = pathBegin.GetUtf8String(pathBaseLast);
-                            Path = pathBaseLast.GetUtf8String(pathEnd);
+                            pathBaseEnd.Take();
+                        }
+                        else if (char.ToLowerInvariant(requestUrlPath[i]) == char.ToLowerInvariant(_pathBase[i]))
+                        {
+                            pathBaseEnd.Take();
+                            caseMatches = false;
                         }
                         else
                         {
-                            PathBase = pathBegin.GetAsciiString(pathBaseLast);
-                            Path = pathBaseLast.GetAsciiString(pathEnd);
+                            break;
                         }
+                    }
 
-                        pathBaseSet = true;
+                    if (i == _pathBase.Length && (requestUrlPath.Length == _pathBase.Length || requestUrlPath[i] == '/'))
+                    {
+                        if (needDecode)
+                        {
+                            PathBase = caseMatches ? _pathBase : pathBegin.GetUtf8String(pathBaseEnd);
+                            Path = pathBaseEnd.GetUtf8String(pathEnd);
+                        }
+                        else
+                        {
+                            PathBase = caseMatches ? _pathBase : pathBegin.GetAsciiString(pathBaseEnd);
+                            Path = pathBaseEnd.GetAsciiString(pathEnd);
+                        }
                     }
                 }
 
-                if (!pathBaseSet)
+                if (Path == null)
                 {
                     Path = requestUrlPath;
                 }
-
-                //if (!string.IsNullOrEmpty(_pathBase) &&
-                //    (requestUrlPath.Equals(_pathBase, StringComparison.OrdinalIgnoreCase) ||
-                //     requestUrlPath.StartsWith(_pathBaseWithSlash, StringComparison.OrdinalIgnoreCase)))
-                //{
-                //    PathBase = requestUrlPath.Substring(0, _pathBase.Length);
-                //    Path = requestUrlPath.Substring(_pathBase.Length);
-                //}
-                //else
-                //{
-                //    Path = requestUrlPath;
-                //}
 
                 return true;
             }
