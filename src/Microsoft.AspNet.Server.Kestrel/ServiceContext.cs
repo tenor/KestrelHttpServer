@@ -4,6 +4,7 @@
 using System;
 using System.Net;
 using Microsoft.AspNet.Hosting;
+using Microsoft.AspNet.Http.Features;
 using Microsoft.AspNet.Server.Kestrel.Filter;
 using Microsoft.AspNet.Server.Kestrel.Http;
 using Microsoft.AspNet.Server.Kestrel.Infrastructure;
@@ -34,7 +35,7 @@ namespace Microsoft.AspNet.Server.Kestrel
 
         public IKestrelTrace Log { get; set; }
 
-        public Func<ConnectionContext, IPEndPoint, IPEndPoint, Frame> FrameFactory { get; set; }
+        public Func<ConnectionContext, IPEndPoint, IPEndPoint, Action<IFeatureCollection>, Frame> FrameFactory { get; set; }
 
         public DateHeaderValueManager DateHeaderValueManager { get; set; }
 

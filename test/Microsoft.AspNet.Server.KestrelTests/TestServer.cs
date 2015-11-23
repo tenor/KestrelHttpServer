@@ -33,9 +33,9 @@ namespace Microsoft.AspNet.Server.KestrelTests
 
         public void Create(RequestDelegate app, ServiceContext context, string serverAddress)
         {
-            context.FrameFactory = (connectionContext, remoteEP, localEP) => 
+            context.FrameFactory = (connectionContext, remoteEP, localEP, prepareRequest) => 
             {
-                return new Frame<HttpContext>(new DummyApplication(app), connectionContext, remoteEP, localEP);
+                return new Frame<HttpContext>(new DummyApplication(app), connectionContext, remoteEP, localEP, prepareRequest);
             };
             _engine = new KestrelEngine(context);
             _engine.Start(1);
