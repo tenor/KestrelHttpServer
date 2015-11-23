@@ -6,6 +6,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Hosting.Server;
+using Microsoft.AspNet.Http.Features;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AspNet.Server.Kestrel.Http
@@ -16,15 +17,16 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
 
         public Frame(IHttpApplication<THttpContext> application,
                      ConnectionContext context)
-            : this(application, context, remoteEndPoint: null, localEndPoint: null)
+            : this(application, context, remoteEndPoint: null, localEndPoint: null, prepareRequest: null)
         {
         }
 
         public Frame(IHttpApplication<THttpContext> application,
                      ConnectionContext context,
                      IPEndPoint remoteEndPoint,
-                     IPEndPoint localEndPoint)
-            : base(context, remoteEndPoint, localEndPoint)
+                     IPEndPoint localEndPoint,
+                     Action<IFeatureCollection> prepareRequest)
+            : base(context, remoteEndPoint, localEndPoint, prepareRequest)
         {
             _application = application;
         }
@@ -106,8 +108,11 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                             {
                                 await ProduceEnd();
 
-                                // Finish reading the request body in case the app did not.
-                                await messageBody.Consume();
+                                if (_keepAlive)
+                                {
+                                    // Finish reading the request body in case the app did not.
+                                    await messageBody.Consume();
+                                }
                             }
 
                             _requestBody.StopAcceptingReads();

@@ -64,9 +64,9 @@ namespace Microsoft.AspNet.Server.Kestrel
                 var dateHeaderValueManager = new DateHeaderValueManager();
                 var engine = new KestrelEngine(new ServiceContext
                 {
-                    FrameFactory = (context, remoteEP, localEP) => 
+                    FrameFactory = (context, remoteEP, localEP, prepareRequest) => 
                     {
-                        return new Frame<THttpContext>(application, context, remoteEP, localEP);
+                        return new Frame<THttpContext>(application, context, remoteEP, localEP, prepareRequest);
                     },
                     AppLifetime = _applicationLifetime,
                     Log = new KestrelTrace(_logger),
