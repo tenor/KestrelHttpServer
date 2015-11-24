@@ -83,7 +83,6 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                         catch (Exception ex)
                         {
                             ReportApplicationError(ex);
-                            _application.DisposeContext(context, ex);
                         }
                         finally
                         {
@@ -98,10 +97,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
 
                             await FireOnCompleted();
 
-                            if (_applicationException == null)
-                            {
-                                _application.DisposeContext(context, null);
-                            }
+                            _application.DisposeContext(context, _applicationException);
 
                             // If _requestAbort is set, the connection has already been closed.
                             if (!_requestAborted)

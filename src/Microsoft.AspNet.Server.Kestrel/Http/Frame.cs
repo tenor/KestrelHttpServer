@@ -765,7 +765,14 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
 
         protected void ReportApplicationError(Exception ex)
         {
-            _applicationException = ex;
+            if (_applicationException == null)
+            {
+                _applicationException = ex;
+            }
+            else
+            {
+                _applicationException = new AggregateException(_applicationException, ex);
+            }
             Log.ApplicationError(ex);
         }
     }
