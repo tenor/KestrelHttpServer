@@ -72,8 +72,8 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                         ResponseBody = _responseBody;
                         DuplexStream = new FrameDuplexStream(RequestBody, ResponseBody);
 
-                        _requestAbortCts = CancellationTokenSource.CreateLinkedTokenSource(_disconnectCts.Token);
-                        RequestAborted = _requestAbortCts.Token;
+                        _abortedCts = null;
+                        _manuallySetRequestAbortToken = null;
 
                         var context = _application.CreateContext(this);
                         try
@@ -129,7 +129,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
             {
                 try
                 {
-                    _disconnectCts.Dispose();
+                    _abortedCts = null;
 
                     // If _requestAborted is set, the connection has already been closed.
                     if (!_requestAborted)
