@@ -12,27 +12,26 @@ namespace Microsoft.AspNet.Server.KestrelTests
 {
     public class DummyApplication : IHttpApplication<HttpContext>
     {
-        private readonly RequestDelegate _application;
+        private readonly RequestDelegate _requestDelegate;
 
-        public DummyApplication(RequestDelegate application)
+        public DummyApplication(RequestDelegate requestDelegate)
         {
-            _application = application;
+            _requestDelegate = requestDelegate;
         }
 
-        private readonly IHttpContextFactory _httpContextFactory = new HttpContextFactory(new HttpContextAccessor());
         public HttpContext CreateContext(IFeatureCollection contextFeatures)
         {
-            return _httpContextFactory.Create(contextFeatures);
+            return new DefaultHttpContext(contextFeatures);
         }
 
         public void DisposeContext(HttpContext context, Exception exception)
         {
-            _httpContextFactory.Dispose(context);
+
         }
 
         public async Task ProcessRequestAsync(HttpContext context)
         {
-            await _application(context);
+            await _requestDelegate(context);
         }
     }
 }
