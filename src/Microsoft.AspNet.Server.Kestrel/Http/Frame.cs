@@ -250,10 +250,10 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
                         _requestAbortCts = CancellationTokenSource.CreateLinkedTokenSource(_disconnectCts.Token);
                         RequestAborted = _requestAbortCts.Token;
 
-                        var httpContext = HttpContextFactory.Create(this);
+                        var context = Application.CreateContext(this);
                         try
                         {
-                            await Application.Invoke(httpContext).ConfigureAwait(false);
+                            await Application.ProcessRequestAsync(context).ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
@@ -272,7 +272,7 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
 
                             await FireOnCompleted();
 
-                            HttpContextFactory.Dispose(httpContext);
+                            Application.DisposeContext(context, _applicationException);
 
                             // If _requestAbort is set, the connection has already been closed.
                             if (!_requestAborted)
@@ -877,7 +877,14 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
 
         private void ReportApplicationError(Exception ex)
         {
-            _applicationException = ex;
+            if (_applicationException == null)
+            {
+                _applicationException = ex;
+            }
+            else
+            {
+                _applicationException = new AggregateException(_applicationException, ex);
+            }
             Log.ApplicationError(ex);
         }
     }

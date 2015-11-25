@@ -32,11 +32,11 @@ namespace Microsoft.AspNet.Server.KestrelTests
 
         public void Create(RequestDelegate app, ServiceContext context, string serverAddress)
         {
+            context.Application = new DummyApplication(app);
             _engine = new KestrelEngine(context);
             _engine.Start(1);
             _server = _engine.CreateServer(
-                ServerAddress.FromUrl(serverAddress),
-                app);
+                ServerAddress.FromUrl(serverAddress));
         }
 
         public void Dispose()

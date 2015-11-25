@@ -3,7 +3,6 @@
 
 using System;
 using System.Threading.Tasks;
-using Microsoft.AspNet.Http;
 using Microsoft.AspNet.Server.Kestrel.Networking;
 using Microsoft.Extensions.Logging;
 
@@ -23,12 +22,10 @@ namespace Microsoft.AspNet.Server.Kestrel.Http
 
         public Task StartAsync(
             ServerAddress address,
-            KestrelThread thread,
-            RequestDelegate application)
+            KestrelThread thread)
         {
             ServerAddress = address;
             Thread = thread;
-            Application = application;
 
             var tcs = new TaskCompletionSource<int>(this);
 
